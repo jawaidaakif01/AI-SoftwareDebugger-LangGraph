@@ -4,3 +4,5 @@ langchain-groq
 langchain-google-genai
 python-dotenv
 numpy
+langsmith
+streamlit

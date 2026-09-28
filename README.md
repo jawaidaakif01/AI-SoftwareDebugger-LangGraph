@@ -2,8 +2,7 @@
  
 An autonomous root-cause analysis and fix agent, built with LangGraph. Point it at a local Python repository and an error, and it investigates the codebase, diagnoses the root cause from multiple angles in parallel, generates a fix, verifies the fix by actually running it, and — only after a human approves — applies it to disk.
  
-This was built as a practice project to get hands-on with LangGraph's core orchestration patterns, using a real, useful task instead of a toy example.
- 
+
 ## What it does
  
 1. You give it a repository folder and either paste an error or let it run a file and capture the error itself.
@@ -11,6 +10,20 @@ This was built as a practice project to get hands-on with LangGraph's core orche
 3. It generates a fix, actually runs the fixed code to verify it works, and retries with feedback from the failure if it doesn't.
 4. It pauses and shows you the proposed fix. Nothing is written to disk until you approve it.
 5. Once approved, it writes the fix, re-confirms it runs cleanly, and produces a final report.
+## Screenshots
+ 
+<table>
+<tr>
+<td width="50%"><img src="ProjectScreenshots/5.png" width="380"><br><sub>Intake — point it at a repo and provide an error</sub></td>
+<td width="50%"><img src="ProjectScreenshots/3.png" width="380"><br><sub>Parallel diagnostic findings combined into a root cause</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="ProjectScreenshots/2.png" width="380"><br><sub>Proposed fix, held for human approval before anything is written</sub></td>
+<td width="50%"><img src="ProjectScreenshots/4.png" width="380"><br><sub>Final report once a fix is approved and verified</sub></td>
+</tr>
+</table>
+<img src="ProjectScreenshots/1.png" width="780">
+<br><sub>Full tool-calling trace of the Context Gatherer node in LangSmith</sub>
 ## Architecture
  
 ```mermaid
@@ -67,6 +80,8 @@ src/
   utils.py             # shared helpers (run_python_file, files_as_text)
   graph.py             # builds and compiles the graph
   main.py              # CLI entry point
+  app_ui.py            # Streamlit UI entry point
+  ui_theme.py          # custom styling for the Streamlit UI
   nodes/
     classifier.py
     context_gatherer.py
@@ -96,15 +111,21 @@ GROQ_API_KEY=your_key_here
 ```
 (Set `LLM_PROVIDER=gemini` and add `GOOGLE_API_KEY` instead to use Gemini — the two are interchangeable, since every node goes through a single `get_llm()` factory.)
  
+**Terminal:**
 ```bash
 uv run src/main.py
 ```
  
-You'll be asked for a repository path and how to provide the error — either point it at a file to run, or paste an error message yourself.
+**Web UI:**
+```bash
+uv run streamlit run src/app_ui.py
+```
+ 
+Either way, you'll be asked for a repository path and how to provide the error — either point it at a file to run, or paste an error message yourself.
  
 ### Sample fixtures
  
-`sample_broken_repo/` contains three small, deliberately broken files to test against:
+`sample_broken_repo/` contains small, deliberately broken files to test against:
  
 - **`broken_imports.py`** — a `ModuleNotFoundError` from an import that doesn't exist.
 - **`buggy_math.py`** — a logic bug (off-by-one in a loop), surfaced by a failing `assert` rather than a crash.
@@ -147,8 +168,7 @@ Fix was applied to: sample_broken_repo/broken_graph.py
 - Sandboxed (Docker) verification instead of local `subprocess`
 - Multi-file fix support
 - Support for languages beyond Python
-- A lightweight web UI instead of a terminal CLI for the approval step
+- Deployed, hosted version of the Streamlit UI
 ## Built with
  
-LangGraph, LangChain, Groq / Google Gemini, Python
- 
+LangGraph, LangChain, Groq / Google Gemini, Streamlit, Python
