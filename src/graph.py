@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
+from langgraph.checkpoint.memory import MemorySaver
 
 from state import State
 from nodes.classifier import classifier_node
@@ -9,6 +10,9 @@ from nodes.diagnostics import dependency_check_node, static_check_node, pattern_
 from nodes.root_cause import root_cause_node
 from nodes.fix_generator import fix_generator_node
 from nodes.verifier import verifier_node
+from nodes.human_review import human_review_node
+from nodes.apply_fix import apply_fix_node
+from nodes.report import report_node
 
 
 
@@ -52,24 +56,24 @@ MAX_TOOL_ROUNDS = 5
 #         "last_failure_reason": "" if passed else "stub failure reason"
 #     }
 
-def human_review_node(state: State) -> dict:
-    print("\n--- [Phase 7] Human Review (auto-approved stub) ---")
-    return {"human_approved": True, "human_feedback": ""}
+# def human_review_node(state: State) -> dict:
+#     print("\n--- [Phase 7] Human Review (auto-approved stub) ---")
+#     return {"human_approved": True, "human_feedback": ""}
 
-def apply_fix_node(state: State) -> dict:
-    print("\n--- Apply fix ---")
-    return {}
+# def apply_fix_node(state: State) -> dict:
+#     print("\n--- Apply fix ---")
+#     return {}
 
-def report_node(state: State) -> dict:
-    print("\n--- Report Generator ---")
-    report = (
-        f"Category: {state.get('error_category', 'unknown')}\n"
-        f"Attempts: {state.get('fix_attempt', 0)}\n"
-        f"Verified: {state.get("verification_passed", False)}\n"
-        f"Approved: {state.get('human_approved', False)}"
-    )
+# def report_node(state: State) -> dict:
+#     print("\n--- Report Generator ---")
+#     report = (
+#         f"Category: {state.get('error_category', 'unknown')}\n"
+#         f"Attempts: {state.get('fix_attempt', 0)}\n"
+#         f"Verified: {state.get("verification_passed", False)}\n"
+#         f"Approved: {state.get('human_approved', False)}"
+#     )
 
-    return {"final_report": report}
+#     return {"final_report": report}
 
 def route_by_category(state: State):
     if state['error_category'] == 'unknown':
@@ -160,7 +164,8 @@ graph.add_conditional_edges(
 graph.add_edge("apply_fix", "report")
 graph.add_edge("report", END)
 
-app = graph.compile()
+checkpointer = MemorySaver()
+app = graph.compile(checkpointer=checkpointer)
 
 png_bytes = app.get_graph().draw_mermaid_png()
 with open("langgraph.png", "wb") as f:

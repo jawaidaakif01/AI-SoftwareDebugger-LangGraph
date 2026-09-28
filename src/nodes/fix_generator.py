@@ -4,13 +4,13 @@ from utils import files_as_text
 
 llm = get_llm(temperature=0)
 
+
 def clean_code(text):
     """Removes ``` lines in case the LLM wraps its code in markdown."""
     kept_lines = []
     for line in text.strip().split("\n"):
         if not line.strip().startswith("```"):
             kept_lines.append(line)
-
     return "\n".join(kept_lines)
 
 
@@ -20,12 +20,14 @@ def fix_generator_node(state: State) -> dict:
     print(f"\n--- [Phase 6] Fix Generator (attempt {attempt}) ---")
 
     prompt = (
-        "You are fixing a bug in a Python repository.\n\n"
+         "You are fixing a bug in a Python repository.\n\n"
         f"Error:\n{state['error']}\n\n"
         f"Root cause:\n{state['diagnostics']['root_cause']}\n\n"
         f"Code (line numbers are shown only for reference):\n{files_as_text(state['file_contents'])}\n"
+        f"The FILE you choose must be exactly one of: {list(state['file_contents'].keys())}\n\n"
     )
 
+    # on a retry, show the LLM what it tried before and why it failed
     if attempt > 1:
         prompt += (
             "Your previous fix did not work.\n"
@@ -43,17 +45,16 @@ def fix_generator_node(state: State) -> dict:
     reply = llm.invoke(prompt).content.strip()
 
     if "FILE:" not in reply or "CODE:" not in reply:
-        print(" -> reply was not in the expected format")
-        return {"draft_corrected_code":"", "target_file": "", "fix_attempt": attempt} 
-
+        print("  -> reply was not in the expected format")
+        return {"draft_corrected_code": "", "target_file": "", "fix_attempt": attempt}
 
     first_part, code = reply.split("CODE:", 1)
     target_file = first_part.replace("FILE:", "").strip()
     code = clean_code(code)
 
-    print(f" -> proposed a fix for {target_file}")
+    print(f"  -> proposed a fix for {target_file}")
     return {
         "draft_corrected_code": code,
         "target_file": target_file,
-        "fix_attempt": attempt
+        "fix_attempt": attempt,
     }
